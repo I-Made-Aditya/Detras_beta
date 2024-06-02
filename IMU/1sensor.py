@@ -39,6 +39,7 @@ Fpitch = 0
 Fyaw = 0
 Froll = 0
 
+
 def record_data_to_csv(file_path):
     global roll  # Menandakan bahwa variabel roll yang digunakan adalah variabel global
     
