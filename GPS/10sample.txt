@@ -1,0 +1,10 @@
+{"class":"VERSION","release":"3.22","rev":"3.22","proto_major":3,"proto_minor":14}
+{"class":"DEVICES","devices":[{"class":"DEVICE","path":"/dev/ttyS0","activated":"2024-03-23T19:50:18.914Z","native":0,"bps":9600,"parity":"N","stopbits":1,"cycle":1.00}]}
+{"class":"WATCH","enable":true,"json":false,"nmea":true,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+$GPTXT,01,01,01,PASH inv format*36
+$GPTXT,01,01,01,PASH inv format*36
+$GPTXT,01,01,01,PGRM inv format*34
+$GPTXT,01,01,01,PSRF inv format*2B
+$GPRMC,200230.00,A,0716.54380,S,11247.58637,E,0.071,,230324,,,D*6D
+$GPVTG,,T,,M,0.071,N,0.132,K,D*20
+$GPGGA,200230.00,0716.54380,S,11247.58637,E,2,06,1.11,16.1,M,17.4,M,,0000*76
