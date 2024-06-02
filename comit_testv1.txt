@@ -20,7 +20,7 @@ ser = serial.Serial("/dev/ttyS0",
                 )     
 
 i2c = board.I2C()  # Menggunakan board.SCL dan board.SDA
-
+a
 AM_sensor = adafruit_fxos8700.FXOS8700(i2c, accel_range=adafruit_fxos8700.ACCEL_RANGE_8G)
 G_sensor = adafruit_fxas21002c.FXAS21002C(i2c, gyro_range=adafruit_fxas21002c.GYRO_RANGE_2000DPS)
 
