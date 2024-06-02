@@ -1,0 +1,101 @@
+import csv
+import time
+import board
+import math
+import serial
+import busio
+import threading
+
+import numpy as np
+import adafruit_fxos8700
+import adafruit_fxas21002c
+
+# Inisialisasi port untuk pengirim USART
+ser = serial.Serial("/dev/ttyS0", 
+                    baudrate=115200,
+                    parity=serial.PARITY_NONE, 
+                    stopbits=serial.STOPBITS_ONE, 
+                    bytesize=serial.EIGHTBITS, 
+                    timeout=1
+                )     
+
+i2c = board.I2C()  # Menggunakan board.SCL dan board.SDA
+
+AM_sensor = adafruit_fxos8700.FXOS8700(i2c, accel_range=adafruit_fxos8700.ACCEL_RANGE_8G)
+G_sensor = adafruit_fxas21002c.FXAS21002C(i2c, gyro_range=adafruit_fxas21002c.GYRO_RANGE_2000DPS)
+
+# AM_sensor = adafruit_fxos8700.FXOS8700(i2c, accel_range=adafruit_fxos8700.ACCEL_RANGE_8G)
+# G_sensor = adafruit_fxas21002c.FXAS21002C(i2c, gyro_range=adafruit_fxas21002c.GYRO_RANGE_1000DPS)
+
+alpha = 0.98  # Weight untuk gyro
+dt = 0.02     # Waktu sampel (dalam detik) dalam 50Hz frequency
+
+# Inisialisasi variabel roll, pitch, dan yaw dengan nilai awal
+pitch = 0
+yaw = 0
+roll = 0
+
+Fpitch = 0
+Fyaw = 0
+Froll = 0
+
+def record_data_to_csv(file_path):
+    global roll  # Menandakan bahwa variabel roll yang digunakan adalah variabel global
+    
+    with open(file_path, 'w', newline='') as csvfile:
+        fieldnames = ['accel_x', 'accel_y', 'accel_z', 'gyro_x', 'gyro_y', 'gyro_z', 'pitch', 'yaw', 'roll']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        data_count = 0  # Untuk menghitung jumlah data yang sudah direkam
+        
+        try:
+            while True:
+                # Read acceleration, magnetometer, gyroscope.
+                accel_x, accel_y, accel_z = AM_sensor.accelerometer
+                gyro_x, gyro_y, gyro_z = G_sensor.gyroscope
+                
+                Apitch = math.atan2(accel_y, accel_z) * 180.0 / math.pi
+                Aroll = math.atan2(-accel_x, math.sqrt(math.pow(accel_y, 2) + math.pow(accel_z, 2))) * 180.0 / math.pi 
+                
+                # Hitung nilai roll, pitch, dan yaw
+                Froll = alpha * (roll + gyro_x * dt) + (1 - alpha) * Aroll
+                Fpitch = alpha * (pitch + gyro_y * dt) + (1 - alpha) * Apitch
+                Fyaw = yaw + gyro_z * dt
+                
+                # Print values without delay.
+                print("Acc_X:{0:0.3f}, Acc_Y:{1:0.3f}, Acc_Z:{2:0.3f}\t\t"  #get Accel data
+                    "Gyro_X:{3:0.3f}, Gyro_Y:{4:0.3f}, Gyro_Z:{5:0.3f}\t\t" #get Gyro data
+                    "Roll:{6:0.3f}, Pitch:{7:0.3f}, Yaw:{8:0.3f}" #get orientation data
+                    .format(accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, Froll, Fpitch, Fyaw))
+                
+                ser.write(("{0:0.3f},{1:0.3f},{2:0.3f},{3:0.3f},{4:0.3f},{5:0.3f},{6:0.3f},{7:0.3f},{8:0.3f}\n"
+                        .format(accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, Froll, Fpitch, Fyaw))
+                    .encode()
+                  )
+                # Tulis data ke file CSV setiap 5 detik
+                if data_count % 4 == 0:
+                    writer.writerow({'accel_x': accel_x,
+                                    'accel_y': accel_y,
+                                    'accel_z': accel_z,
+                                    'gyro_x': gyro_x,
+                                    'gyro_y': gyro_y,
+                                    'gyro_z': gyro_z,
+                                    'pitch': Fpitch,
+                                    'yaw': Fyaw,
+                                    'roll': Froll})
+                
+                data_count += 1
+                
+                time.sleep(0.01)  # Mungkin Anda ingin menyesuaikan interval waktu antara setiap pengambilan data
+        except KeyboardInterrupt:
+            print("Recording stopped.")
+
+if __name__ == "__main__":
+    # Start recording data
+    record_thread = threading.Thread(target=record_data_to_csv, args=('imu_data1.csv',))
+    record_thread.daemon = True
+    record_thread.start()
+    
+    while True:
+        time.sleep(0.01)
